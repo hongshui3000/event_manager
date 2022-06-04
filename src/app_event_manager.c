@@ -20,8 +20,9 @@ LOG_MODULE_REGISTER(app_event_manager, CONFIG_APP_EVENT_MANAGER_LOG_LEVEL);
 static void event_processor_fn(struct k_work *work);
 
 struct app_event_manager_event_display_bm _app_event_manager_event_display_bm;
-
+#ifdef CONFIG_MULTITHREADING
 static K_WORK_DEFINE(event_processor, event_processor_fn);
+#endif
 static sys_slist_t eventq = SYS_SLIST_STATIC_INIT(&eventq);
 static struct k_spinlock lock;
 
@@ -221,10 +222,16 @@ void _event_submit(struct app_event_header *aeh)
 	}
 	sys_slist_append(&eventq, &aeh->node);
 	k_spin_unlock(&lock, key);
-
+#ifdef CONFIG_MULTITHREADING
 	k_work_submit(&event_processor);
+#endif
 }
-
+#ifndef CONFIG_MULTITHREADING
+void app_event_manager_schedule(void)
+{
+	event_processor_fn(NULL);
+}
+#endif
 int app_event_manager_init(void)
 {
 	int ret = 0;

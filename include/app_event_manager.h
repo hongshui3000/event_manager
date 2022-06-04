@@ -380,6 +380,15 @@ void *app_event_manager_alloc(size_t size);
  **/
 void app_event_manager_free(void *addr);
 
+#ifndef CONFIG_MULTITHREADING
+/** @brief the event schedule.
+ *
+ *Execute all events in the event queue under a single thread
+ *
+ * 
+ **/
+void app_event_manager_schedule(void);
+#endif
 /** @brief Log event.
  *
  * This helper macro simplifies event logging.
