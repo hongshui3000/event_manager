@@ -23,4 +23,9 @@ void main(void)
 		event->init_value1 = INIT_VALUE1;
 		APP_EVENT_SUBMIT(event);
 	}
+	#ifndef CONFIG_MULTITHREADING
+	while(1){
+		app_event_manager_schedule();
+	}
+	#endif
 }

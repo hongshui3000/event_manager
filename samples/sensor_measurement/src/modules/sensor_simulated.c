@@ -11,15 +11,24 @@
 #include "ack_event.h"
 #include "config_event.h"
 
+
+#define MODULE sensor_sim
+#ifdef CONFIG_MULTITHREADING
 #define SENSOR_SIMULATED_THREAD_STACK_SIZE 800
 #define SENSOR_SIMULATED_THREAD_PRIORITY 1
 #define SENSOR_SIMULATED_THREAD_SLEEP 500
-#define MODULE sensor_sim
-
 static K_THREAD_STACK_DEFINE(sensor_simulated_thread_stack,
 			     SENSOR_SIMULATED_THREAD_STACK_SIZE);
 static struct k_thread sensor_simulated_thread;
+#else
+static void measure(void);
+void measure_timer_handler(struct k_timer *dummy)
+{
+    measure();
+}
+K_TIMER_DEFINE(measure_timer, measure_timer_handler, NULL);
 
+#endif
 static int8_t value1;
 static int16_t value2;
 static int32_t value3;
@@ -41,7 +50,7 @@ static void measure(void)
 	event->value3 = value3;
 	APP_EVENT_SUBMIT(event);
 }
-
+#ifdef CONFIG_MULTITHREADING
 static void sensor_simulated_thread_fn(void)
 {
 	while (true) {
@@ -49,9 +58,11 @@ static void sensor_simulated_thread_fn(void)
 		k_sleep(K_MSEC(SENSOR_SIMULATED_THREAD_SLEEP));
 	}
 }
+#endif
 
 static void init(void)
 {
+#ifdef CONFIG_MULTITHREADING
 	k_thread_create(&sensor_simulated_thread,
 			sensor_simulated_thread_stack,
 			SENSOR_SIMULATED_THREAD_STACK_SIZE,
@@ -59,6 +70,11 @@ static void init(void)
 			NULL, NULL, NULL,
 			SENSOR_SIMULATED_THREAD_PRIORITY,
 			0, K_NO_WAIT);
+#else
+
+/* start periodic timer that expires once every 500ms */
+k_timer_start(&measure_timer, K_MSEC(500), K_MSEC(500));
+#endif
 }
 
 static bool app_event_handler(const struct app_event_header *aeh)
